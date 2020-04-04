@@ -18,15 +18,15 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         val inputMatrix = Imgcodecs.imread("puzzle.jpg") as Mat
-        val cannyOut = getFilteredEdges(inputMatrix)
-        val contours = ArrayList<MatOfPoint>()
-        val hierarchy = Mat()
-        Imgproc.findContours(cannyOut, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE)
-        val drawing = Mat.ones(cannyOut.size(), CvType.CV_8UC3)
-        println(cannyOut.size())
+        val filteredMatrix = OCVMat(inputMatrix).Defaults()
+                .bilateralFilter().cvtColor().canny()
+                .getOCVMat().matrix
+        val contours = OpenCV.findContours(filteredMatrix).contours
+        val drawing = Mat.ones(filteredMatrix.size(), CvType.CV_8UC3)
+        Imgproc.drawContours(drawing, contours, -1, scalarAwtColor(CvType.CV_8UC3, Color.WHITE))
 
         for (i in contours.indices) {
-            Imgproc.drawContours(drawing, contours, -1, scalarAwtColor(CvType.CV_8UC3, Color.WHITE))
+            //TODO separate contours into PuzzlePieces
             val moments = Imgproc.moments(contours[i])
             val ctrX = moments.m10 / moments.m00
             val ctrY = moments.m01 / moments.m00
@@ -35,16 +35,6 @@ object Main {
         }
 
         ImageIO.write(toBufferedImage(drawing), "jpg", File("puzzleOut.jpg"))
-    }
-
-    private fun getFilteredEdges(input: Mat): Mat {
-        val filterOut = Mat()
-        val colorOut = Mat()
-        val finalOut = Mat()
-        Imgproc.bilateralFilter(input, filterOut, 20, 75.0, 75.0)
-        Imgproc.cvtColor(filterOut, colorOut, Imgproc.COLOR_RGB2GRAY)
-        Imgproc.Canny(colorOut, finalOut, 150.0, 200.0)
-        return finalOut
     }
 
     private fun toBufferedImage(m: Mat): BufferedImage {
